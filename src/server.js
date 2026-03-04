@@ -14,9 +14,12 @@ const path = require('path');
 const app = express();
 
 // Explicit CORS configuration for Vercel
-// Simple CORS for testing - allow everything
-app.use(cors());
-
+app.use(cors({
+    origin: ["https://frontend-nine-liart-53.vercel.app", "http://localhost:3000"],
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "ngrok-skip-browser-warning", "x-proxy-faculty"],
+    credentials: true
+}));
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
@@ -43,7 +46,40 @@ app.get('/', (req, res) => {
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(
-    PORT,
-    console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`)
-);
+// Function to Sync AI Memory with MongoDB on Startup
+const syncAIFaces = async () => {
+    try {
+        const User = require('./models/User');
+        const axios = require('axios');
+
+        console.log('🔄 Initializing AI Memory Sync...');
+        const students = await User.find({
+            role: 'student',
+            faceRegistered: true,
+            faceEmbedding: { $exists: true, $ne: null }
+        });
+
+        if (students.length > 0) {
+            const embeddings = students.map(s => ({
+                id: s._id.toString(),
+                embedding: s.faceEmbedding
+            }));
+
+            await axios.post(`${process.env.AI_SERVICE_URL}/build-faiss-index`, {
+                embeddings
+            });
+
+            console.log(`✅ AI Memory Synced: ${students.length} students loaded.`);
+        } else {
+            console.log('ℹ️ AI Sync: No registered students found in MongoDB yet.');
+        }
+    } catch (err) {
+        console.error('❌ AI Memory Sync Failed:', err.message);
+    }
+};
+
+app.listen(PORT, async () => {
+    console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
+    // Run sync after server is up
+    await syncAIFaces();
+});
