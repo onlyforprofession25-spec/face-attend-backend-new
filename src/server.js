@@ -14,12 +14,9 @@ const path = require('path');
 const app = express();
 
 // Explicit CORS configuration for Vercel
-app.use(cors({
-    origin: ["https://frontend-nine-liart-53.vercel.app", "http://localhost:3000"],
-    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "ngrok-skip-browser-warning", "x-proxy-faculty"],
-    credentials: true
-}));
+// Simple CORS for testing - allow everything
+app.use(cors());
+
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
