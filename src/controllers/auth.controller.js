@@ -172,6 +172,11 @@ const resetPassword = async (req, res) => {
 // @route   GET /api/auth/me
 // @access  Private
 const getUserProfile = async (req, res) => {
+    // Safety check: Prevents crash if using a stale token on a new database
+    if (!req.user) {
+        return res.status(401).json({ message: 'User not found (Token might be from another database)' });
+    }
+
     const { email } = req.query;
     let userId = req.user._id;
 
