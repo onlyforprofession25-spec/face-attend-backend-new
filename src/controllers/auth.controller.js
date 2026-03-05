@@ -252,9 +252,11 @@ const registerFace = async (req, res) => {
         });
 
         // 2. Call Python AI Service for embeddings
-        console.log("Calling Python AI Service...");
+        console.log(`📡 Sending High-Res Biometrics for ${user.fullName} to AI Service... (Wait up to 5 min)`);
         const aiResponse = await axios.post(`${process.env.AI_SERVICE_URL}/generate-embedding`, {
             images: images
+        }, {
+            timeout: 300000 // 5 minutes timeout for high-res mobile uploads
         });
 
         if (!aiResponse.data || !aiResponse.data.embedding) {
@@ -299,9 +301,10 @@ const registerFace = async (req, res) => {
                 });
 
                 return res.status(400).json({
-                    message: `🚨 FRAUD DETECTED: This face is already registered to ${existingUser?.fullName || 'another student'} (${existingUser?.email || 'unknown'}). Similarity: ${duplicateCheck.data.similarity}%. You cannot register the same face with multiple accounts.`,
+                    message: `🚨 FRAUD DETECTED: This face is already registered to ${existingUser?.fullName || 'another student'} (${existingUser?.email || 'unknown'}). Similarity: ${duplicateCheck.data.similarity}%.`,
                     duplicate: true,
                     similarity: duplicateCheck.data.similarity,
+                    allMatches: duplicateCheck.data.allMatches,
                     existingUser: {
                         name: existingUser?.fullName,
                         email: existingUser?.email,
