@@ -101,8 +101,19 @@ const syncAIFaces = async (attempt = 1) => {
     }
 };
 
+// 🚀 MASTER SYNC ROUTE: Use this to "Refresh the Brain" of the AI Service
+app.get('/api/admin/force-sync', async (req, res) => {
+    try {
+        console.log('🔗 [MANUAL SYNC] Force-Sync triggered via API...');
+        await syncAIFaces();
+        res.json({ success: true, message: "AI Memory Sync Started. Check terminal logs for progress." });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
 app.listen(PORT, async () => {
     console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
     // Run sync after server is up
-    await syncAIFaces();
+    syncAIFaces();
 });
