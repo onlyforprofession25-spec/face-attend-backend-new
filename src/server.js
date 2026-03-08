@@ -47,34 +47,57 @@ app.get('/', (req, res) => {
 const PORT = process.env.PORT || 5000;
 
 // Function to Sync AI Memory with MongoDB on Startup
-const syncAIFaces = async () => {
+// Function to Sync AI Memory with MongoDB on Startup (With Robust Retries for Hugging Face)
+// Function to Sync AI Memory with MongoDB on Startup (Professional Guard Edition)
+const syncAIFaces = async (attempt = 1) => {
+    const MAX_ATTEMPTS = 15; // Give it 150 seconds (2.5 mins) to wake up/download models
+    const User = require('./models/User');
+    const axios = require('axios');
+    const AI_URL = process.env.AI_SERVICE_URL;
+
+    if (!AI_URL) {
+        console.warn('⚠️ AI_SERVICE_URL not set. Skipping biometric sync.');
+        return;
+    }
+
     try {
-        const User = require('./models/User');
-        const axios = require('axios');
+        // 🔍 Step 1: Health Check (Is the AI even awake?)
+        console.log(`🛰️ [Sync Attempt ${attempt}] Connecting to AI Engine at ${AI_URL}...`);
+        const status = await axios.get(`${AI_URL}/check-status`, { timeout: 5000 });
 
-        console.log('🔄 Initializing AI Memory Sync...');
-        const students = await User.find({
-            role: 'student',
-            faceRegistered: true,
-            faceEmbedding: { $exists: true, $ne: null }
-        });
+        if (status.data.status === 'online') {
+            console.log('🧠 AI Engine is Awake. Checking database...');
 
-        if (students.length > 0) {
-            const embeddings = students.map(s => ({
-                id: s._id.toString(),
-                embedding: s.faceEmbedding
-            }));
+            // 🔍 Step 2: Fetch Students from MongoDB
+            const students = await User.find({
+                role: 'student',
+                faceRegistered: true,
+                faceEmbedding: { $exists: true, $ne: [] }
+            }).select('_id faceEmbedding fullName');
 
-            await axios.post(`${process.env.AI_SERVICE_URL}/build-faiss-index`, {
-                embeddings
-            });
+            if (students.length > 0) {
+                console.log(`📥 Pushing ${students.length} biometric fingerprints to AI Memory...`);
 
-            console.log(`✅ AI Memory Synced: ${students.length} students loaded.`);
-        } else {
-            console.log('ℹ️ AI Sync: No registered students found in MongoDB yet.');
+                const response = await axios.post(`${AI_URL}/build-faiss-index`, {
+                    embeddings: students.map(s => ({
+                        id: s._id.toString(),
+                        embedding: s.faceEmbedding
+                    }))
+                });
+
+                console.log(`✅ [MASTER SYNC] ${response.data.message}`);
+            } else {
+                console.log('ℹ️ Sync: No students found in database. Ready for new registrations.');
+            }
         }
     } catch (err) {
-        console.error('❌ AI Memory Sync Failed:', err.message);
+        if (attempt < MAX_ATTEMPTS) {
+            const reason = err.response ? `AI warming up (${err.response.status})` : err.message;
+            console.log(`⏳ AI still warming up: ${reason}. Retrying in 10s...`);
+            setTimeout(() => syncAIFaces(attempt + 1), 10000);
+        } else {
+            console.error('🔥 CRITICAL: AI could not be reached after 15 attempts. Attendance will not work.');
+        }
     }
 };
 
