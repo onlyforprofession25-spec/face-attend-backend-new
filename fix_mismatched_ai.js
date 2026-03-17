@@ -33,6 +33,7 @@ const fixMismatch = async () => {
 
         const payload = validUsers.map(u => ({
             id: u._id.toString(),
+            name: u.fullName,
             embedding: u.faceEmbedding
         }));
 
