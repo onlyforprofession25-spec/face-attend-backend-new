@@ -380,6 +380,7 @@ const registerFace = async (req, res) => {
         try {
             await axios.post(`${process.env.AI_SERVICE_URL}/add-face`, {
                 id: user._id.toString(),
+                name: user.fullName,
                 embedding: newEmbedding
             });
             console.log(`✅ AI Service updated for user ${user.fullName}`);
