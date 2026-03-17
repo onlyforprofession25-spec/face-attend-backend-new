@@ -30,6 +30,7 @@ const forceCleanup = async () => {
         console.log("3. Sending valid users to AI Service...");
         const payload = users.map(u => ({
             id: u._id.toString(),
+            name: u.fullName,
             embedding: u.faceEmbedding
         }));
 
