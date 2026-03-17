@@ -26,6 +26,7 @@ const syncFaiss = async () => {
         // 3. Prepare payload for AI Service
         const embeddingsPayload = users.map(user => ({
             id: user._id.toString(),
+            name: user.fullName,
             embedding: user.faceEmbedding
         }));
 
