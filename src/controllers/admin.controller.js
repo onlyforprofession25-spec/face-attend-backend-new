@@ -39,6 +39,7 @@ const deleteUser = async (req, res) => {
 
             const payload = validUsers.map(u => ({
                 id: u._id.toString(),
+                name: u.fullName,
                 embedding: u.faceEmbedding
             }));
 
