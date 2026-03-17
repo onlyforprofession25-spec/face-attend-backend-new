@@ -101,6 +101,7 @@ const startSession = async (req, res) => {
             if (students.length > 0) {
                 const embeddings = students.map(s => ({
                     id: s._id.toString(),
+                    name: s.fullName,
                     embedding: s.faceEmbedding
                 }));
 
@@ -631,6 +632,22 @@ const resetLivenessSession = async (req, res) => {
     }
 };
 
+// @desc    Reset AI session buffers
+// @route   POST /api/faculty/reset-session
+// @access  Private (Faculty only)
+const resetSession = async (req, res) => {
+    try {
+        const { sessionId } = req.body;
+        await axios.post(`${process.env.AI_SERVICE_URL}/reset-session`, {
+            sessionId: sessionId || "default"
+        });
+        res.status(200).json({ message: "AI session buffers cleared" });
+    } catch (error) {
+        console.error("Reset session error:", error);
+        res.status(500).json({ message: "Failed to reset AI session" });
+    }
+};
+
 // @desc    Manually approve weak match
 // @route   PUT /api/faculty/approve-attendance/:recordId
 // @access  Private (Faculty only)
@@ -874,5 +891,6 @@ module.exports = {
     getAllStudents,
     getFacultyTimetable,
     resetLivenessSession,
+    resetSession,
     getAllSessions
 };
